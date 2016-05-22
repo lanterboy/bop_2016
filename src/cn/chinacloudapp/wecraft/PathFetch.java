@@ -25,10 +25,10 @@ public class PathFetch {
 	private String urlHead = "https://oxfordhk.azure-api.net/academic/v1.0/";
 	private String urlAction = "evaluate";
 	private String urlExpression = "?expr=";
-	private String[] urlAttribute = {"&count=100&attributes=Id,C.CId,RId,AA.AuId,AA.AfId,F.FId,J.JId",
-									"&count=100&attributes=Id,AA.AuId,AA.AfId",
-									"&count=100&attributes=AA.AuId",
-									"&count=100&attributes=Id"};
+	private String[] urlAttribute = {"&count=300&attributes=Id,C.CId,RId,AA.AuId,AA.AfId,F.FId,J.JId",
+									"&count=300&attributes=Id,AA.AuId,AA.AfId",
+									"&count=300&attributes=AA.AuId",
+									"&count=300&attributes=Id"};
 	//private String urlAttribute = "&attributes=Id,C.CId,RId,AA.AuId,AA.AfId,F.FId,J.JId";
 	private String urlKey = "&subscription-key=f7cc29509a8443c5b3a5e56b0e38b5a6";
 	
@@ -558,28 +558,43 @@ public class PathFetch {
 	public String confirmType(String id) 
 	{
 		String type = "";
-		String json = fetchContent("AA.AuId", id);
+		String json = fetchSub("AA.AuId", id);
 		//System.out.println(json);
 		//System.out.println(json.contains("AA.AfId"));
 		if (json.contains("AfId"))
 		// PAY ATTETION HERE, in fetchContent cache already
 		// holds the right/wrong json with the specific id,
-		// so remember to remove the wrong one
+		// so remember to remove the wrong one 
+			{
+			PathFetch.cache.put(id, json);
 			return "AA.AuId";
+		}
 		else {
-			PathFetch.cache.remove(id);
+			//PathFetch.cache.remove(id);
 			//PathFetch.entityCache.remove(id);
 			json = fetchContent("Id", id);
 			return "Id";
 		}
 	}
 	
+	// fetchContent has to communicate with PathFetch.cache,
+	// so it is necessary to keep the get-request right.
 	public String fetchContent(String type, String id) 
 	{
 		if(PathFetch.cache.containsKey(id)) 
 			return PathFetch.cache.get(id);
 			
+		String json = fetchSub(type, id);
+		if(json != null && !json.isEmpty())
+			PathFetch.cache.put(id, json);
 		
+		return json;
+	}
+
+	// fetchSub only offers specific type && id.
+	// it would not check out the validation.
+	public String fetchSub(String type, String id)
+	{
 		StringBuilder json = new StringBuilder();  
 	    try {  
 	    	String url = this.urlHead + this.urlAction + this.queryParam(type, id);
@@ -596,14 +611,13 @@ public class PathFetch {
 	        // PAY ATTENTION HERE
 	        // TO accelerate the speed, store visited json string
 	        //	with a MAPSET.
-	        PathFetch.cache.put(id, json.toString());
+	        //PathFetch.cache.put(id, json.toString());
 	    } catch (MalformedURLException e) {  
 	    	e.printStackTrace();  
 	    } catch (IOException e) {  
 	    	e.printStackTrace();  
 	    }
-		//System.out.println(json.toString());
-		return json.toString();
+	    return json.toString();
 	}
 	
 	public String queryParam(String type, String id)
